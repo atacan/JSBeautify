@@ -1,6 +1,6 @@
 # JSBeautify
 
-Swift wrapper around the JavaScript `js-beautify` minifiers (1.14.9) using JavaScriptCore.
+Swift wrapper around the JavaScript `js-beautify` minifiers (1.15.4) using JavaScriptCore.
 
 ## Usage
 
