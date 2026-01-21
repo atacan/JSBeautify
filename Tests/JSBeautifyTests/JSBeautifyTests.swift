@@ -4,10 +4,82 @@ import XCTest
 final class JSBeautifyTests: XCTestCase {
     private enum TestError: Error {
         case initializationFailed
+        case nodeProcessFailed
     }
 
     private func optionsDictionary(_ options: JSBeautifyFormattingOptions) -> [String: Any] {
         options.toDictionary()
+    }
+
+    private var repositoryRoot: URL {
+        var url = URL(fileURLWithPath: #filePath)
+        url.deleteLastPathComponent()
+        url.deleteLastPathComponent()
+        url.deleteLastPathComponent()
+        return url
+    }
+
+    private var assetsURL: URL {
+        repositoryRoot.appendingPathComponent("Sources/JSBeautify/Assets", isDirectory: true)
+    }
+
+    private var nodeScriptURL: URL {
+        repositoryRoot.appendingPathComponent("Tests/JSBeautifyTests/Fixtures/beautify-node.js")
+    }
+
+    private func nodeBeautify(
+        mode: String,
+        input: String,
+        options: [String: Any]
+    ) throws -> String {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let inputURL = tempDir.appendingPathComponent("input.txt")
+        try input.write(to: inputURL, atomically: true, encoding: .utf8)
+
+        let optionsURL = tempDir.appendingPathComponent("options.json")
+        let optionsData = try JSONSerialization.data(withJSONObject: options, options: [])
+        try optionsData.write(to: optionsURL)
+
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [
+            "node",
+            nodeScriptURL.path,
+            assetsURL.path,
+            mode,
+            inputURL.path,
+            optionsURL.path
+        ]
+
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+
+        try process.run()
+        process.waitUntilExit()
+
+        guard process.terminationStatus == 0 else {
+            let errorData = stderr.fileHandleForReading.readDataToEndOfFile()
+            let errorOutput = String(data: errorData, encoding: .utf8) ?? ""
+            XCTFail("Node process failed: \(errorOutput)")
+            throw TestError.nodeProcessFailed
+        }
+
+        let outputData = stdout.fileHandleForReading.readDataToEndOfFile()
+        let result = try JSONSerialization.jsonObject(with: outputData, options: [.allowFragments])
+        guard let output = result as? String else {
+            XCTFail("Node output was not a string")
+            throw TestError.nodeProcessFailed
+        }
+        return output
     }
 
     private func makeWrapper() throws -> JSBeautify {
@@ -25,7 +97,12 @@ final class JSBeautifyTests: XCTestCase {
     func testBeautifyJavaScriptDefault() throws {
         let wrapper = try makeWrapper()
         let output = wrapper.beautifyJavaScript("function test(){console.log(\"hi\");}")
-        XCTAssertEqual(output, "function test() {\n    console.log(\"hi\");\n}")
+        let expected = try nodeBeautify(
+            mode: "js",
+            input: "function test(){console.log(\"hi\");}",
+            options: [:]
+        )
+        XCTAssertEqual(output, expected)
     }
 
     func testBeautifyJavaScriptOptions() throws {
@@ -34,7 +111,12 @@ final class JSBeautifyTests: XCTestCase {
             "function test(){console.log(\"hi\");}",
             options: ["indent_size": 2]
         )
-        XCTAssertEqual(output, "function test() {\n  console.log(\"hi\");\n}")
+        let expected = try nodeBeautify(
+            mode: "js",
+            input: "function test(){console.log(\"hi\");}",
+            options: ["indent_size": 2]
+        )
+        XCTAssertEqual(output, expected)
     }
 
     func testBeautifyJavaScriptTypedOptions() throws {
@@ -45,7 +127,12 @@ final class JSBeautifyTests: XCTestCase {
             "function test(){console.log(\"hi\");}",
             options: options
         )
-        XCTAssertEqual(output, "function test() {\n  console.log(\"hi\");\n}")
+        let expected = try nodeBeautify(
+            mode: "js",
+            input: "function test(){console.log(\"hi\");}",
+            options: options.toDictionary()
+        )
+        XCTAssertEqual(output, expected)
     }
 
     func testActorBeautifyJavaScript() async throws {
@@ -59,19 +146,34 @@ final class JSBeautifyTests: XCTestCase {
             "function test(){console.log(\"hi\");}",
             options: options
         )
-        XCTAssertEqual(output, "function test() {\n  console.log(\"hi\");\n}")
+        let expected = try nodeBeautify(
+            mode: "js",
+            input: "function test(){console.log(\"hi\");}",
+            options: options.toDictionary()
+        )
+        XCTAssertEqual(output, expected)
     }
 
     func testBeautifyCSSDefault() throws {
         let wrapper = try makeWrapper()
         let output = wrapper.beautifyCSS("body{color:red;}")
-        XCTAssertEqual(output, "body {\n    color: red;\n}")
+        let expected = try nodeBeautify(
+            mode: "css",
+            input: "body{color:red;}",
+            options: [:]
+        )
+        XCTAssertEqual(output, expected)
     }
 
     func testBeautifyHTMLDefault() throws {
         let wrapper = try makeWrapper()
         let output = wrapper.beautifyHTML("<div><p>Hello</p><p>World</p></div>")
-        XCTAssertEqual(output, "<div>\n    <p>Hello</p>\n    <p>World</p>\n</div>")
+        let expected = try nodeBeautify(
+            mode: "html",
+            input: "<div><p>Hello</p><p>World</p></div>",
+            options: [:]
+        )
+        XCTAssertEqual(output, expected)
     }
 
     func testBeautifyHTMLWrapAttributesTypedOptions() throws {
@@ -80,7 +182,12 @@ final class JSBeautifyTests: XCTestCase {
         options.htmlWrapAttributes = .force
         options.htmlWrapAttributesMinAttrs = 1
         let output = wrapper.beautifyHTML("<div class=\"a\" id=\"b\"></div>", options: options)
-        XCTAssertEqual(output, "<div class=\"a\"\n    id=\"b\"></div>")
+        let expected = try nodeBeautify(
+            mode: "html",
+            input: "<div class=\"a\" id=\"b\"></div>",
+            options: options.toDictionary()
+        )
+        XCTAssertEqual(output, expected)
     }
 
     func testIndentationOptionsMapping() {

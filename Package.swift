@@ -33,7 +33,10 @@ let package = Package(
         ),
         .testTarget(
             name: "JSBeautifyTests",
-            dependencies: ["JSBeautify"]
+            dependencies: ["JSBeautify"],
+            exclude: [
+                "Fixtures/beautify-node.js"
+            ]
         ),
     ]
 )
