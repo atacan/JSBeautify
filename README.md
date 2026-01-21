@@ -16,7 +16,7 @@ let css = beautifier.beautifyCSS("body{color:red;}")
 let html = beautifier.beautifyHTML("<div><p>Hello</p><p>World</p></div>")
 
 var format = JSBeautifyFormattingOptions()
-format.indentation = .spaces2
+format.indentation = .spaces(2)
 let compact = beautifier.beautifyJavaScript(
     "function test(){console.log(\"hi\");}",
     options: format
@@ -33,7 +33,7 @@ guard let beautifier = JSBeautifyActor() else {
 }
 
 var options = JSBeautifyFormattingOptions()
-options.indentation = .spaces2
+options.indentation = .spaces(2)
 let js = await beautifier.beautifyJavaScript(
     "function test(){console.log(\"hi\");}",
     options: options
