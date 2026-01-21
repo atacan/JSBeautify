@@ -72,9 +72,14 @@ cp "$work_dir/beautify-css.min.js" "$assets_dir/beautify-css.min.js"
 cp "$work_dir/beautify-html.min.js" "$assets_dir/beautify-html.min.js"
 cp "$work_dir/JSBeautify-LICENSE" "$assets_dir/JSBeautify-LICENSE"
 
-python3 - <<PY
+export ROOT_DIR="$root_dir"
+export LATEST_VERSION="$latest_version"
+python3 - <<'PY'
+import os
 import pathlib
-root = pathlib.Path("$root_dir")
+
+root = pathlib.Path(os.environ["ROOT_DIR"])
+latest_version = os.environ["LATEST_VERSION"]
 readme = root / "README.md"
 if readme.exists():
     text = readme.read_text(encoding="utf-8")
