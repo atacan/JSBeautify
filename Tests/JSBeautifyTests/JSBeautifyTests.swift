@@ -36,7 +36,7 @@ final class JSBeautifyTests: XCTestCase {
     func testBeautifyJavaScriptTypedOptions() throws {
         let wrapper = try makeWrapper()
         var options = JSBeautifyFormattingOptions()
-        options.indentation = .spaces2
+        options.indentation = .spaces(2)
         let output = wrapper.beautifyJavaScript(
             "function test(){console.log(\"hi\");}",
             options: options
@@ -50,7 +50,7 @@ final class JSBeautifyTests: XCTestCase {
             return
         }
         var options = JSBeautifyFormattingOptions()
-        options.indentation = .spaces2
+        options.indentation = .spaces(2)
         let output = await actor.beautifyJavaScript(
             "function test(){console.log(\"hi\");}",
             options: options

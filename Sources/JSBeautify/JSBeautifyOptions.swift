@@ -105,6 +105,20 @@ public struct JSBeautifyOptions: Sendable, Equatable {
     }
 }
 
+private enum OptionValidation {
+    static func clamp(_ value: Int, min: Int, max: Int, name: String) -> Int {
+        precondition(min <= max, "Invalid clamp range for \(name).")
+        if value < min { return min }
+        if value > max { return max }
+        return value
+    }
+
+    static func nonNegative(_ value: Int, name: String) -> Int {
+        precondition(value != Int.min, "\(name) is out of range.")
+        return clamp(value, min: 0, max: Int.max, name: name)
+    }
+}
+
 public struct JSBeautifyFormattingOptions: Sendable, Equatable {
     public enum HTMLTemplating: Sendable, Equatable {
         case auto
@@ -122,29 +136,16 @@ public struct JSBeautifyFormattingOptions: Sendable, Equatable {
 
     public enum Indentation: Sendable, Equatable {
         case tabs
-        case spaces2
-        case spaces3
-        case spaces4
-        case spaces8
+        case spaces(Int)
     }
 
     public enum NewlinesBetweenTokens: Sendable, Equatable {
         case removeAll
-        case allow1
-        case allow2
-        case allow5
-        case allow10
-        case unlimited
+        case allow(Int)
     }
 
     public enum LineWrap: Sendable, Equatable {
-        case noWrap
-        case near40
-        case near70
-        case near80
-        case near110
-        case near120
-        case near160
+        case wrap(Int)
     }
 
     public enum BraceStyle: Sendable, Equatable {
@@ -170,9 +171,9 @@ public struct JSBeautifyFormattingOptions: Sendable, Equatable {
         case preserveAligned
     }
 
-    public var indentation: Indentation = .spaces4
-    public var newlinesBetweenTokens: NewlinesBetweenTokens = .allow5
-    public var lineWrap: LineWrap = .noWrap
+    public var indentation: Indentation = .spaces(4)
+    public var newlinesBetweenTokens: NewlinesBetweenTokens = .allow(5)
+    public var lineWrap: LineWrap = .wrap(0)
     public var braceStyle: BraceStyle = .collapse
     public var htmlScriptIndentation: HTMLScriptIndentation = .addOneIndent
 
@@ -233,25 +234,10 @@ public struct JSBeautifyFormattingOptions: Sendable, Equatable {
             output["indent_char"] = "\t"
             indentSize = 4
             output["indent_size"] = indentSize
-        case .spaces2:
+        case let .spaces(size):
             output["indent_with_tabs"] = false
             output["indent_char"] = " "
-            indentSize = 2
-            output["indent_size"] = indentSize
-        case .spaces3:
-            output["indent_with_tabs"] = false
-            output["indent_char"] = " "
-            indentSize = 3
-            output["indent_size"] = indentSize
-        case .spaces4:
-            output["indent_with_tabs"] = false
-            output["indent_char"] = " "
-            indentSize = 4
-            output["indent_size"] = indentSize
-        case .spaces8:
-            output["indent_with_tabs"] = false
-            output["indent_char"] = " "
-            indentSize = 8
+            indentSize = OptionValidation.nonNegative(size, name: "indent_size")
             output["indent_size"] = indentSize
         }
 
@@ -259,38 +245,20 @@ public struct JSBeautifyFormattingOptions: Sendable, Equatable {
         case .removeAll:
             output["preserve_newlines"] = false
             output["max_preserve_newlines"] = 0
-        case .allow1:
+        case let .allow(maxNewlines):
             output["preserve_newlines"] = true
-            output["max_preserve_newlines"] = 1
-        case .allow2:
-            output["preserve_newlines"] = true
-            output["max_preserve_newlines"] = 2
-        case .allow5:
-            output["preserve_newlines"] = true
-            output["max_preserve_newlines"] = 5
-        case .allow10:
-            output["preserve_newlines"] = true
-            output["max_preserve_newlines"] = 10
-        case .unlimited:
-            output["preserve_newlines"] = true
-            output["max_preserve_newlines"] = 0
+            output["max_preserve_newlines"] = OptionValidation.nonNegative(
+                maxNewlines,
+                name: "max_preserve_newlines"
+            )
         }
 
         switch lineWrap {
-        case .noWrap:
-            output["wrap_line_length"] = 0
-        case .near40:
-            output["wrap_line_length"] = 40
-        case .near70:
-            output["wrap_line_length"] = 70
-        case .near80:
-            output["wrap_line_length"] = 80
-        case .near110:
-            output["wrap_line_length"] = 110
-        case .near120:
-            output["wrap_line_length"] = 120
-        case .near160:
-            output["wrap_line_length"] = 160
+        case let .wrap(length):
+            output["wrap_line_length"] = OptionValidation.nonNegative(
+                length,
+                name: "wrap_line_length"
+            )
         }
 
         switch braceStyle {
@@ -351,8 +319,14 @@ public struct JSBeautifyFormattingOptions: Sendable, Equatable {
         case .preserveAligned:
             output["wrap_attributes"] = "preserve-aligned"
         }
-        output["wrap_attributes_min_attrs"] = htmlWrapAttributesMinAttrs
-        output["wrap_attributes_indent_size"] = htmlWrapAttributesIndentSize ?? indentSize
+        output["wrap_attributes_min_attrs"] = OptionValidation.nonNegative(
+            htmlWrapAttributesMinAttrs,
+            name: "wrap_attributes_min_attrs"
+        )
+        output["wrap_attributes_indent_size"] = OptionValidation.nonNegative(
+            htmlWrapAttributesIndentSize ?? indentSize,
+            name: "wrap_attributes_indent_size"
+        )
 
         output["extra_liners"] = htmlExtraLiners
         output["inline"] = htmlInlineElements
