@@ -88,12 +88,36 @@ public final class JSBeautify {
         return call(function: jsBeautify, input: input, options: options)
     }
 
+    public func beautifyJavaScript(_ input: String, options: JSBeautifyOptions) -> String? {
+        return beautifyJavaScript(input, options: options.toDictionary())
+    }
+
+    public func beautifyJavaScript(_ input: String, options: JSBeautifyFormattingOptions) -> String? {
+        return beautifyJavaScript(input, options: options.toDictionary())
+    }
+
     public func beautifyCSS(_ input: String, options: Options = [:]) -> String? {
         return call(function: cssBeautify, input: input, options: options)
     }
 
+    public func beautifyCSS(_ input: String, options: JSBeautifyOptions) -> String? {
+        return beautifyCSS(input, options: options.toDictionary())
+    }
+
+    public func beautifyCSS(_ input: String, options: JSBeautifyFormattingOptions) -> String? {
+        return beautifyCSS(input, options: options.toDictionary())
+    }
+
     public func beautifyHTML(_ input: String, options: Options = [:]) -> String? {
         return call(function: htmlBeautify, input: input, options: options)
+    }
+
+    public func beautifyHTML(_ input: String, options: JSBeautifyOptions) -> String? {
+        return beautifyHTML(input, options: options.toDictionary())
+    }
+
+    public func beautifyHTML(_ input: String, options: JSBeautifyFormattingOptions) -> String? {
+        return beautifyHTML(input, options: options.toDictionary())
     }
 
     public func defaultJavaScriptOptions() -> Options? {

@@ -33,6 +33,31 @@ final class JSBeautifyTests: XCTestCase {
         XCTAssertEqual(output, "function test() {\n  console.log(\"hi\");\n}")
     }
 
+    func testBeautifyJavaScriptTypedOptions() throws {
+        let wrapper = try makeWrapper()
+        var options = JSBeautifyFormattingOptions()
+        options.indentation = .spaces2
+        let output = wrapper.beautifyJavaScript(
+            "function test(){console.log(\"hi\");}",
+            options: options
+        )
+        XCTAssertEqual(output, "function test() {\n  console.log(\"hi\");\n}")
+    }
+
+    func testActorBeautifyJavaScript() async throws {
+        guard let actor = JSBeautifyActor() else {
+            XCTFail("Failed to initialize JSBeautifyActor")
+            return
+        }
+        var options = JSBeautifyFormattingOptions()
+        options.indentation = .spaces2
+        let output = await actor.beautifyJavaScript(
+            "function test(){console.log(\"hi\");}",
+            options: options
+        )
+        XCTAssertEqual(output, "function test() {\n  console.log(\"hi\");\n}")
+    }
+
     func testBeautifyCSSDefault() throws {
         let wrapper = try makeWrapper()
         let output = wrapper.beautifyCSS("body{color:red;}")
@@ -43,6 +68,15 @@ final class JSBeautifyTests: XCTestCase {
         let wrapper = try makeWrapper()
         let output = wrapper.beautifyHTML("<div><p>Hello</p><p>World</p></div>")
         XCTAssertEqual(output, "<div>\n    <p>Hello</p>\n    <p>World</p>\n</div>")
+    }
+
+    func testBeautifyHTMLWrapAttributesTypedOptions() throws {
+        let wrapper = try makeWrapper()
+        var options = JSBeautifyFormattingOptions()
+        options.htmlWrapAttributes = .force
+        options.htmlWrapAttributesMinAttrs = 1
+        let output = wrapper.beautifyHTML("<div class=\"a\" id=\"b\"></div>", options: options)
+        XCTAssertEqual(output, "<div class=\"a\"\n    id=\"b\"></div>")
     }
 
     func testDefaultOptions() throws {
